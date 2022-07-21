@@ -1,70 +1,133 @@
-# Getting Started with Create React App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+npm i zustand
 
-## Available Scripts
+and create your desired store as example below:
 
-In the project directory, you can run:
+```jsx
+import create from 'zustand'
+import {devtools,persist} from 'zustand/middleware'
 
-### `npm start`
+const courseStore =(set) => ({
+    courses:[],
+    addCourse: (course) => {
+        set((state) => ({
+            courses: [...state.courses, course]
+        }))
+    },
+    removeCourse: (course) => {
+        set((state) => ({
+            courses: state.courses.filter(c => c.id !== course.id)
+        }))
+    },
+    editCourse: (course) => {
+        set((state) => ({
+            courses: state.courses.map(c => c.id === course.id ? course : c)
+        }))
+    },
+    courseToggleStatus: (courseId) => {
+        set((state) => ({
+            courses: state.courses.map(c => c.id === courseId ? {...c, status: !c.status} : c)
+        }))
+    }
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+})
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+//we do below lines to get our store into local storage
+const  useCourseStore = create(
+    devtools(persist(courseStore,{
+        name: 'courses',
+    }))
+)
 
-### `npm test`
+export default useCourseStore
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+**Then use it anywhere as you wish(look at below example):**
 
-### `npm run build`
+```jsx
+import React, { useState } from "react";
+import useCourseStore from "../store/courseStore";
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+function CourseForm() {
+  const addCourse = useCourseStore((state) => state.addCourse); //addCourse is a function that we can call to add a course from the store
+  const [courseTitle, setCourseTitle] = useState("");
+  console.log("CourseForm Rendered");
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+  const handleCourseSubmit = () => {
+    if (!courseTitle) return alert("Please enter a course title");
+    addCourse({
+      id: Math.ceil(Math.random() * 1000),
+      title: courseTitle,
+    });
+    setCourseTitle("");
+    
+  };
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+  return (
+    <div className="form-container">
+      <input
+        value={courseTitle}
+        onChange={(e) => setCourseTitle(e.target.value)}
+        placeholder="Add Course"
+        className="form-input"
+      />
+      <button onClick={handleCourseSubmit} className="form-submit-btn">
+        Add Course
+      </button>
+    </div>
+  );
+}
 
-### `npm run eject`
+export default CourseForm;
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+**and another component:**
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```jsx
+import React from "react";
+import useCourseStore from "../store/courseStore";
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+function CourseList() {
+  const { courses, removeCourse, editCourse, courseToggleStatus } =
+    useCourseStore((state) => ({
+      courses: state.courses,
+      removeCourse: state.removeCourse,
+      editCourse: state.editCourse,
+      courseToggleStatus: state.courseToggleStatus,
+    }));
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+  return (
+    <>
+      <ul>
+        {courses.map((course, i) => {
+          return (
+            <React.Fragment key={i}>
+              <li
+                style={{
+                  backgroundColor: course.completed ? "#00FF0044" : "white",
+                }}
+                className={"course-item"}
+              >
+                <span className="course-item-col-1">
+                  <input
+                    type="checkbox"
+                    checked={course.completed}
+                    onChange={() => courseToggleStatus(course.id)}
+                  />
+                </span>
+                <span style={{color:"black"}} className="course-item-col-2">{course?.title}</span>
+                <button
+                  onClick={() => removeCourse(course)}
+                  className="delete btn"
+                >Delete</button>
+              </li>
+            </React.Fragment>
+          );
+        })}
+      </ul>
+    </>
+  );
+}
 
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+export default CourseList;
+```
